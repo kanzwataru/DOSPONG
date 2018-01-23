@@ -6,7 +6,8 @@
 #include <dos.h>
 
 #include "src/srender.h"
-#include "src/pctimer.h"
+#include "src/pctimer.h" /* One of two places included, but not used at the same time */
+#include "src/utils.h"
 
 #define RECT_COUNT 5
 
@@ -14,9 +15,11 @@ static int rect_x_dirs[RECT_COUNT];
 static int rect_y_dirs[RECT_COUNT];
 static RenderData rd;
 
+/*
 int i_range_rand(int min, int max) {
     return rand()%(max-min)+min;
 }
+*/
 
 static void update(void)
 {

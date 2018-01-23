@@ -11,6 +11,9 @@
  *
  * (how it actually works is a complete mystery as I don't know assembly,
  *  feel free to read the original article for more thorough explanation)
+ *
+ * Probably is a very very bad idea to include and/or use this header in
+ * multiple files at once.
  */
 #ifndef PCTIMER_H
 #define PCTIMER_H
@@ -18,8 +21,8 @@
 /* This points to the 18.2Hz timer function in the bios */
 #define TICKS	(volatile unsigned long far *)(0x0040006CL)
 
-volatile unsigned long fast_tick, slow_tick; /* Using fast_tick inside game code for 120Hz tick */
-static void interrupt (far *oldtimer)(void); /* The old timer callback, used by DOS and BIOS */
+static volatile unsigned long fast_tick, slow_tick; /* Using fast_tick inside game code for 120Hz tick */
+static void interrupt (far *oldtimer)(void);        /* The old timer callback, used by DOS and BIOS */
 
 /*
  * This function gets called by the BIOS interrupt
@@ -62,7 +65,7 @@ static void interrupt new_timer(void)
  * to 120Hz. We do this by dividing 1193180 by the desired frequency.
  * (I have no idea what that magic number means)
  */
-void init_timer(void)
+static void init_timer(void)
 {
 	slow_tick = 0l;
 	fast_tick = 0l;
@@ -91,7 +94,7 @@ void init_timer(void)
  * to 18.2Hz. This should absolutely be called before exiting to DOS otherwise
  * bad things could happen.
 */
-void restore_timer(void)
+static void restore_timer(void)
 {
 	asm cli
 
@@ -117,7 +120,7 @@ void restore_timer(void)
  * This function is obsolete, it would only be used if we weren't
  * replacing the 18.2Hz clock with a faster one and switching interrupts
 */
-unsigned long get_tick(void)
+static unsigned long get_tick(void)
 {
 	return (*(TICKS));
 }

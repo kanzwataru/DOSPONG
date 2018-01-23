@@ -6,13 +6,13 @@
 #include <dos.h>
 
 #include "src/srender.h"
-#include "src/pctimer.h"
+#include "src/pctimer.h" /* One of two places included, but not used at the same time */
 
 static RenderData rd;
 
 static void update(void)
 {
-    
+
 }
 
 static void render(void)
