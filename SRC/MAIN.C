@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "src/dospong.h"
 #include "src/cubetest.h"
 
 int main(int argc, char **argv)
@@ -15,4 +16,6 @@ int main(int argc, char **argv)
     else {
         return pong_init();
     }
+
+    return 1;
 }
