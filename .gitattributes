@@ -1,0 +1,3 @@
+# Use CRLF line endings as Borland C needs it
+*.C text eol=crlf
+*.H text eol=crlf
