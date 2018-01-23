@@ -11,6 +11,7 @@ typedef struct {
 	int y;
 	int w;
 	int h;
+	unsigned char col;
 } Rect;
 
 typedef struct {

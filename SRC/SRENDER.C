@@ -4,7 +4,6 @@
 #include <dos.h>
 
 #define INPUT_STATUS_0 0x3da
-#define ESC 27
 /* #define DRAW_PIXEL(buf, x, y, colour) ((buf)[((y) << 8) + ((y) << 6) + (x)] = (colour))
 */
 
@@ -74,11 +73,9 @@ void quit_renderer(RenderData *rd)
 
 void init_rects(RenderData *rd, int count)
 {
-    size_t size = count * sizeof(Rect);
-
     rd->rect_count = count;
-    rd->dirty_rects = malloc(size);
-    rd->rects = malloc(size);
+    rd->dirty_rects = calloc(count, sizeof(Rect));
+    rd->rects = calloc(count, sizeof(Rect));
 }
 
 void free_rects(RenderData *rd)
@@ -139,8 +136,8 @@ void fill_bordered(unsigned char far *buf, int colour, int border_colour, int bo
 		for(y = 0; y < SCREEN_HEIGHT; y++)
 		{
 			if(x <= border || y <= border
-			    || x >= SCREEN_WIDTH -  border - 5
-			    || y >= SCREEN_HEIGHT - border - 1)
+			    || x >= SCREEN_WIDTH -  border - 1
+			    || y >= SCREEN_HEIGHT - border)
 			{
 				draw_pixel(buf, x, y, border_colour);
 			}
@@ -211,6 +208,6 @@ void render_fast(RenderData *rd)
 
 	for(i = 0; i < rd->rect_count; ++i) {
 		blit_buffer_fast(rd->screen, rd->bg_layer, &rd->dirty_rects[i]);
-		draw_rect_fast(rd->screen, &rd->rects[i], i + 1);
+		draw_rect_fast(rd->screen, &rd->rects[i], rd->rects[i].col);
 	}
 }

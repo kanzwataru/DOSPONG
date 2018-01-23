@@ -107,6 +107,7 @@ int cubetest_init(void)
         rd.rects[i] = a;
         rd.rects[i].x = (i * (2 * rd.rects[i].w));
         rd.rects[i].y = (i * (2 * rd.rects[i].h));
+		rd.rects[i].col = i + 1;
         //rd.rects[i].x = i_range_rand(0, SCREEN_WIDTH);
         //rd.rects[i].y = i_range_rand(0, SCREEN_HEIGHT);
 
