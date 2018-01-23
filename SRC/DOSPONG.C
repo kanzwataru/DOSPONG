@@ -42,13 +42,15 @@ static const int PADDLE_HALFW = PADDLE_W >> 1;
 #define PADDLE_GAP 120
 static const int SCR_HALF = SCREEN_WIDTH / 2;
 static const int TOP      = WALL_W;
-static const int BTM      = SCREEN_HEIGHT - WALL_W - PADDLE_H;
+static const int BTM      = SCREEN_HEIGHT - WALL_W;
+static const int BTM_P    = SCREEN_HEIGHT - WALL_W - PADDLE_H;
 /* */
 
 /* Speed constants */
-#define PADDLE_ACCEL       60
+#define PADDLE_ACCEL       70
 #define PADDLE_SPEED      600
-#define BALL_SPEED        500
+#define PADDLE_FPMULT     100  /* Fixed-point multiplier */
+#define BALL_SPEED        	2
 
 #define P_ACCEL_FRAMES    6
 #define AI_PREDICT_FRAMES 12
@@ -59,6 +61,7 @@ typedef struct {
 	Rect *rect;
 	int speed;
 	int direction;
+	int score;
 } Paddle;
 
 typedef struct {
@@ -108,27 +111,49 @@ void update_paddle(Paddle *paddle)
 										   * (1.0f - (0.01f * !abs(paddle->direction))),
 							  	  				-PADDLE_SPEED, PADDLE_SPEED);
 
-	paddle->rect->y = paddle->rect->y + (paddle->speed / 100);
+	paddle->rect->y = paddle->rect->y + (paddle->speed / PADDLE_FPMULT);
 	if(paddle->rect->y < TOP) {
 		paddle->rect->y = TOP;
 		paddle->speed = 0;
 	}
-	if(paddle->rect->y > BTM) {
-		paddle->rect->y = BTM;
+	if(paddle->rect->y > BTM_P) {
+		paddle->rect->y = BTM_P;
 		paddle->speed = 0;
 	}
 }
 
-/*
-void update_paddle(Paddle *paddle)
+void ball_world_collision(void)
 {
-	paddle->rect->y += paddle->direction;
+	if(ball.rect->y < TOP)
+		ball.dir_y = abs(ball.dir_y);
+	if(ball.rect->y + ball.rect->h > BTM)
+		ball.dir_y = -(abs(ball.dir_y));
+
+	if(ball.rect->x < 0) { /* LEFT */
+		ball.parent = player.rect;
+		++ai.score;
+	}
+	if(ball.rect->x + ball.rect->w > SCREEN_WIDTH) { /* RIGHT */
+		ball.parent = player.rect;
+		++player.score;
+	}
 }
-*/
 
 void update_ball(void)
 {
+	int side;
 
+	if(ball.parent) {
+		side = (ball.parent->x > SCR_HALF) ? 0 : 1;  /* don't add the width for the right side paddle */
+
+		ball.rect->x = (ball.parent->x + (side * ball.parent->w)
+									   + (!side * ball.rect->w));
+		ball.rect->y = ball.parent->y + (ball.parent->h >> 1) - (ball.rect->h >> 1);
+	}
+	else {
+		ball.rect->x += (BALL_SPEED * ball.dir_x);
+		ball.rect->y += (BALL_SPEED * ball.dir_y);
+	}
 }
 
 void update_ai(void)
@@ -141,6 +166,7 @@ void update(void)
 	update_paddle(&player);
 	update_paddle(&ai);
 
+	ball_world_collision();
 	update_ball();
 	update_ai();
 }
@@ -153,6 +179,9 @@ BOOL handle_input(void)
 			break;
 		case 27: /* ']' (SECRET) */
 			shuffle_cols();
+			break;
+		case SPACE:
+			ball.parent = NULL;
 			break;
 		case UP_ARROW:
 			player.direction = -1;
@@ -170,6 +199,8 @@ BOOL handle_input(void)
 			return TRUE;
 			break;
 	}
+
+	free_keyb_buf();
 
 	return TRUE;
 }
@@ -234,6 +265,9 @@ int pong_init(void)
 	ball.rect->w = BALL_W;
 	ball.rect->h = BALL_W;
 	ball.rect->col = accent_col;
+	ball.parent = player.rect;
+	ball.dir_y = 1;
+	ball.dir_x = 1;
 
 	update_bg();
 
