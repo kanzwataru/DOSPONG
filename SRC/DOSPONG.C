@@ -11,6 +11,7 @@
 #include "src/utils.h"
 
 static const char *VERSION = "v1.1";
+#define UPDATE_STEP_SIZE 2
 
 typedef int BOOL;
 #define TRUE  1

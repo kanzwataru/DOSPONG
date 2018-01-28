@@ -9,6 +9,7 @@
 #include "src/pctimer.h" /* One of two places included, but not used at the same time */
 #include "src/utils.h"
 
+#define UPDATE_STEP_SIZE 2
 #define RECT_COUNT 5
 
 static int rect_x_dirs[RECT_COUNT];

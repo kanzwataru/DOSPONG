@@ -1,26 +1,44 @@
+/*
+ * Square RENDERER -> SRENDER
+ * (because Rectangle RENDERER -> RRENDER sounds silly)
+ *
+ * Most documentation/comments are in SRENDER.H
+*/
 #include "src/srender.h"
-
 #include <malloc.h>
 #include <dos.h>
 
-#define INPUT_STATUS_0 0x3da
-/* #define DRAW_PIXEL(buf, x, y, colour) ((buf)[((y) << 8) + ((y) << 6) + (x)] = (colour))
+#define INPUT_STATUS_0 0x3da  /* Used for querying Vblank */
+
+/*
+ * Calculates the offset into the buffer (y * SCREEN_WIDTH + x)
+ * Using bit shifting instead of mults for a bit of optimization
+ *
+ * (assumes mode 13h 320x200)
 */
+#define CALC_OFFSET(x, y)             (((y) << 8) + ((y) << 6) + (x))
 
-static int old_mode;
+/*
+ * Macro versions of draw_pixel() and get_pixel(),
+ * since Borland C doesn't support inline functions
+*/
+#define DRAW_PIXEL(buf, x, y, colour) ((buf)[CALC_OFFSET(x, y)] = (colour))
+#define GET_PIXEL(buf, x, y)          ((buf)[CALC_OFFSET(x, y)])
 
+static int old_mode;  /* VGA mode we were in before switching to 13h */
+
+/*
+ * Creates a buffer the size of the screen
+*/
 static unsigned char far *make_framebuffer() {
 	return farmalloc(SCREEN_SIZE);
 }
 
-static void draw_pixel(unsigned char far *buf, int x, int y, int colour) {
-	buf[(y << 8) + (y << 6) + x] = colour;
-}
-
-static int get_pixel(unsigned char far *buf, int x, int y) {
-	return *(buf + y * SCREEN_WIDTH + x);
-}
-
+/*
+ * Enters mode 13h
+ *
+ * (this code was lifted from: http://www3.telus.net/alexander_russell/course/chapter_1.htm)
+*/
 static void enter_m13h(void)
 {
 	union REGS in, out;
@@ -36,6 +54,11 @@ static void enter_m13h(void)
 	int86(0x10, &in, &out);
 }
 
+/*
+ * Exits mode 13h
+ *
+ * (this code was lifted from: http://www3.telus.net/alexander_russell/course/chapter_1.htm)
+*/
 static void leave_m13h(void)
 {
 	union REGS in, out;
@@ -51,7 +74,7 @@ int init_renderer(RenderData *rd)
 	rd->back_buf = make_framebuffer();
 
 	if(rd->back_buf && rd->bg_layer) {
-		rd->screen = MK_FP(0xa000, 0); /* this gets the screen framebuffer */
+		rd->screen = MK_FP(0xa000, 0);         /* this gets the screen framebuffer */
 		enter_m13h();
 		_fmemset(rd->back_buf, 0, SCREEN_SIZE);
 		_fmemset(rd->bg_layer, 0, SCREEN_SIZE);
@@ -84,6 +107,14 @@ void free_rects(RenderData *rd)
     free(rd->rects);
 }
 
+void draw_pixel(unsigned char far *buf, int x, int y, int colour) {
+	buf[(y << 8) + (y << 6) + x] = colour;
+}
+
+unsigned char get_pixel(unsigned char far *buf, int x, int y) {
+	return buf[(y << 8) + (y << 6) + x];
+}
+
 void blit_buffer(unsigned char far *dest, const unsigned char far *src, const Rect *rect)
 {
 	static int x, y, x_max, y_max, offset;
@@ -93,7 +124,8 @@ void blit_buffer(unsigned char far *dest, const unsigned char far *src, const Re
 
 	for(x = rect->x; x < x_max; ++x) {
 		for(y = rect->y; y < y_max; ++y) {
-			offset = (y << 8) + (y << 6) + x;
+			//offset = (y << 8) + (y << 6) + x;
+			offset = CALC_OFFSET(x, y);
 
 			dest[offset] = src[offset];
 		}
@@ -109,7 +141,8 @@ void blit_buffer_fast(unsigned char far *dest, const unsigned char far *src, con
 	const int y_max = rect->y + rect->h;
 
 	for(y = rect->y; y < y_max; ++y) {
-		offset = (y << 8) + (y << 6) + rect->x;
+		//offset = (y << 8) + (y << 6) + rect->x;
+		offset = CALC_OFFSET(rect->x, y);
 		_fmemcpy(dest + offset, src + offset, rect->w);
 	}
 }
@@ -119,7 +152,7 @@ void fill(unsigned char far *buf, int colour)
 	int x, y;
 	for(x = 0; x < SCREEN_WIDTH; x++) {
 		for(y = 0; y < SCREEN_HEIGHT; y++) {
-			draw_pixel(buf, x, y, colour);
+			DRAW_PIXEL(buf, x, y, colour);
 		}
 	}
 }
@@ -139,10 +172,10 @@ void fill_bordered(unsigned char far *buf, int colour, int border_colour, int bo
 			    || x >= SCREEN_WIDTH -  border - 1
 			    || y >= SCREEN_HEIGHT - border)
 			{
-				draw_pixel(buf, x, y, border_colour);
+				DRAW_PIXEL(buf, x, y, border_colour);
 			}
 			else {
-				draw_pixel(buf, x, y, colour);
+				DRAW_PIXEL(buf, x, y, colour);
 			}
 		}
 	}
@@ -156,7 +189,7 @@ void draw_rect(unsigned char far *buf, const Rect *rect, int colour)
 
 	for(x = rect->x; x < max_x; ++x) {
 		for(y = rect->y; y < max_y; ++y) {
-			draw_pixel(buf, x, y, colour);
+			DRAW_PIXEL(buf, x, y, colour);
 		}
 	}
 }
@@ -169,7 +202,8 @@ void draw_rect_fast(unsigned char far *buf, const Rect *rect, int colour)
 	const int y_max = rect->y + rect->h;
 
 	for(y = rect->y; y < y_max; ++y) {
-		offset = (y << 8) + (y << 6) + rect->x;
+		//offset = (y << 8) + (y << 6) + rect->x;
+		offset = CALC_OFFSET(rect->x, y);
 		_fmemset(buf + offset, colour, rect->w);
 	}
 }
