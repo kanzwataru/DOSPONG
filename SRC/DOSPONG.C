@@ -55,6 +55,7 @@ static const int AI_STOP_RANGE = 3;
 
 /* Speed constants */
 #define PADDLE_ACCEL       70
+#define PADDLE_DECEL	  120
 #define PADDLE_SPEED      600
 #define PADDLE_FPMULT     100  /* Fixed-point multiplier */
 #define BALL_SPEED        	2
@@ -121,7 +122,7 @@ void shuffle_cols(void)
 	++accent_col;
 	if(accent_col == 16)
 		accent_col += 18; /* Skip over the monochromatic colours */
-		
+
 	update_bg();
 
 	player.rect->col = accent_col;
@@ -162,7 +163,7 @@ void pause(void)
 void update_paddle(Paddle *paddle)
 {
 	paddle->speed = f_clamp((paddle->speed + (PADDLE_ACCEL * paddle->direction))
-										   * (1.0f - (0.01f * !abs(paddle->direction))),
+										   * (1.0f - (0.04f * !abs(paddle->direction))),
 							  	  				-PADDLE_SPEED, PADDLE_SPEED);
 
 	paddle->rect->y = paddle->rect->y + (paddle->speed / PADDLE_FPMULT);
@@ -368,6 +369,10 @@ int pong_init(void)
 	init_renderer(&rd);
 	init_rects(&rd, 3); /* Three rects: ball, player, ai */
 	init_timer();
+
+	printf("*** DOSPONG ***\n");
+	printf("Still DOS-ing in 2018\n");
+	printf("\n Loading... \n");
 
 	player.rect = &rd.rects[0];
 	player.rect->x = SCR_HALF - PADDLE_GAP;
