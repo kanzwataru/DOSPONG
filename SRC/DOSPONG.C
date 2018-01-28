@@ -30,20 +30,27 @@ typedef int BOOL;
 /* */
 
 /* Shape constants */
-#define PADDLE_H   30
+#define PADDLE_H   40
 #define PADDLE_W   10
 #define BALL_W     10
 #define WALL_W     10
+#define SCORE_W    6
+#define SCORE_H    2
+
 static const int PADDLE_HALFH = PADDLE_H >> 1;
 static const int PADDLE_HALFW = PADDLE_W >> 1;
 /* */
 
 /* Positioning constants */
-#define PADDLE_GAP 120
-static const int SCR_HALF = SCREEN_WIDTH / 2;
-static const int TOP      = WALL_W;
-static const int BTM      = SCREEN_HEIGHT - WALL_W;
-static const int BTM_P    = SCREEN_HEIGHT - WALL_W - PADDLE_H;
+#define PADDLE_GAP   120
+#define SCORE_OFFSET 3
+static const int SCR_HALF      = SCREEN_WIDTH / 2;
+static const int TOP           = WALL_W;
+static const int BTM           = SCREEN_HEIGHT - WALL_W;
+static const int BTM_P         = SCREEN_HEIGHT - WALL_W - PADDLE_H;
+static const int AI_MIN_REACT  = SCREEN_WIDTH / 2;
+static const int AI_MAX_REACT  = SCREEN_WIDTH / 2 + PADDLE_GAP - 3;
+static const int AI_STOP_RANGE = 3;
 /* */
 
 /* Speed constants */
@@ -52,8 +59,7 @@ static const int BTM_P    = SCREEN_HEIGHT - WALL_W - PADDLE_H;
 #define PADDLE_FPMULT     100  /* Fixed-point multiplier */
 #define BALL_SPEED        	2
 
-#define P_ACCEL_FRAMES    6
-#define AI_PREDICT_FRAMES 12
+#define AI_PREDICT_FRAMES  18
 /* */
 
 /* Data types */
@@ -63,11 +69,6 @@ typedef struct {
 	int direction;
 	int score;
 } Paddle;
-
-typedef struct {
-	unsigned char frame_count;
-	unsigned char y_predict;
-} AIAttrs;
 
 typedef struct {
 	Rect *rect;
@@ -83,26 +84,79 @@ unsigned char accent_col = GRAY;
 BOOL game_paused = FALSE;
 Paddle player;
 Paddle ai;
-AIAttrs aiattrs;
 Ball ball;
 /* */
+
+/* graphics */
 static RenderData rd;
+/* */
+
+void draw_score_tiles(void)
+{
+	int ai_score_pos = SCREEN_WIDTH - SCORE_OFFSET;
+	Rect rect = {0, SCORE_OFFSET, SCORE_H, SCORE_W};
+
+	int i;
+	for(i = 0; i < player.score; ++i) {
+		rect.x = SCORE_OFFSET + (i * (SCORE_W));
+		draw_rect_fast(rd.bg_layer, &rect, BLACK);
+	}
+
+	for(i = 0; i < ai.score; ++i) {
+		rect.x = ai_score_pos - (i * (SCORE_W));
+		draw_rect_fast(rd.bg_layer, &rect, BLACK);
+	}
+}
 
 void update_bg(void)
 {
 	fill_bordered(rd.bg_layer, bg_col, accent_col, WALL_W);
+	draw_score_tiles();
+
 	_fmemcpy(rd.screen, rd.bg_layer, SCREEN_SIZE);
 }
 
 void shuffle_cols(void)
 {
 	++accent_col;
-
+	if(accent_col == 16)
+		accent_col += 18; /* Skip over the monochromatic colours */
+		
 	update_bg();
 
 	player.rect->col = accent_col;
 	ai.rect->col = accent_col;
 	ball.rect->col = accent_col;
+}
+
+void pause(void)
+{
+	static unsigned char col_a, col_b;
+
+	game_paused = !game_paused;
+	if(game_paused) {
+		col_a = bg_col;
+		col_b = accent_col;
+
+		player.rect->col = GRAY;
+		ai.rect->col = GRAY;
+		ball.rect->col = GRAY;
+
+		bg_col = DGRAY;
+		accent_col = GRAY;
+
+		update_bg();
+	}
+	else {
+		player.rect->col = col_b;
+		ai.rect->col = col_b;
+		ball.rect->col = col_b;
+
+		bg_col = col_a;
+		accent_col = col_b;
+
+		update_bg();
+	}
 }
 
 void update_paddle(Paddle *paddle)
@@ -122,6 +176,13 @@ void update_paddle(Paddle *paddle)
 	}
 }
 
+void ball_reset(void)
+{
+	ball.parent = player.rect;
+	ball.dir_x = 1;
+	ball.dir_y = 1;
+}
+
 void ball_world_collision(void)
 {
 	if(ball.rect->y < TOP)
@@ -130,12 +191,36 @@ void ball_world_collision(void)
 		ball.dir_y = -(abs(ball.dir_y));
 
 	if(ball.rect->x < 0) { /* LEFT */
-		ball.parent = player.rect;
 		++ai.score;
+		ball_reset();
+		shuffle_cols();
+
 	}
 	if(ball.rect->x + ball.rect->w > SCREEN_WIDTH) { /* RIGHT */
-		ball.parent = player.rect;
 		++player.score;
+		ball_reset();
+		shuffle_cols();
+	}
+}
+
+void ball_paddle_collision(const Paddle *paddle)
+{
+	static const int LEFT = 1;
+	static const int RIGHT = -1;
+
+	int percent = remap(ball.rect->y, paddle->rect->y,
+									    paddle->rect->y + (paddle->rect->h),
+									    -1, 1);
+
+	int side = paddle->rect->x > SCR_HALF ? RIGHT : LEFT;
+
+	if(percent < 1 && percent > -1) {
+		if((side == LEFT  && ball.rect->x < (paddle->rect->x + paddle->rect->w) && ball.rect->x + ball.rect->w > paddle->rect->x)
+		|| (side == RIGHT && ball.rect->x + ball.rect->w > paddle->rect->x && ball.rect->x < paddle->rect->x + paddle->rect->w))
+		{
+			ball.dir_y = percent + ((paddle->speed / 100) >> 2) + paddle->direction;
+			ball.dir_x = side;
+		}
 	}
 }
 
@@ -156,17 +241,51 @@ void update_ball(void)
 	}
 }
 
+int ai_predict(void)
+{
+	static int predict_counter;
+	static int last_prediction;
+
+	if(predict_counter > AI_PREDICT_FRAMES) {
+		predict_counter = 0;
+		last_prediction = ball.rect->y + (ball.rect->h >> 1);
+	}
+	else {
+		++predict_counter;
+	}
+
+	return last_prediction;
+}
+
 void update_ai(void)
 {
+	int prediction = ai_predict();
+	//int prediction = ball.rect->y + (ball.rect->h >> 1);
+	int mid = ai.rect->y + PADDLE_HALFH;
 
+	if(ball.rect->x > AI_MIN_REACT && ball.rect->x < AI_MAX_REACT) {
+		ai.direction = (prediction < mid) ? -1 : ai.direction;
+		ai.direction = (prediction > mid) ?  1 : ai.direction;
+	}
+
+	if(prediction > (mid - AI_STOP_RANGE)
+	&& prediction < (mid + AI_STOP_RANGE))
+	{
+		ai.direction = 0;
+	}
 }
 
 void update(void)
 {
+	if(game_paused)
+		return;
+
 	update_paddle(&player);
 	update_paddle(&ai);
 
 	ball_world_collision();
+	ball_paddle_collision(&player);
+	ball_paddle_collision(&ai);
 	update_ball();
 	update_ai();
 }
@@ -188,6 +307,9 @@ BOOL handle_input(void)
 			break;
 		case DOWN_ARROW:
 			player.direction = 1;
+			break;
+		case PAUSE:
+			pause();
 			break;
 		case RELEASED(UP_ARROW):
 			player.direction = 0;
