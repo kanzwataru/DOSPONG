@@ -10,6 +10,8 @@
 #include "src/pcinput.h"
 #include "src/utils.h"
 
+static const char *VERSION = "v1.1";
+
 typedef int BOOL;
 #define TRUE  1
 #define FALSE 0
@@ -371,6 +373,7 @@ int pong_init(void)
 	init_timer();
 
 	printf("*** DOSPONG ***\n");
+	printf("%s\n", VERSION);
 	printf("Still DOS-ing in 2018\n");
 	printf("\n Loading... \n");
 
