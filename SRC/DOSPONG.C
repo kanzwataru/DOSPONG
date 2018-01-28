@@ -9,6 +9,7 @@
 #include "src/pctimer.h" /* One of two places included, but not used at the same time */
 #include "src/pcinput.h"
 #include "src/utils.h"
+#include "src/snd.h"
 
 static const char *VERSION = "v1.1";
 #define UPDATE_STEP_SIZE 2
@@ -30,6 +31,17 @@ typedef int BOOL;
 #define WHITE 15
 #define GRAY  7
 #define DGRAY 8
+/* */
+
+/* Sounds */
+#define GRR_SND        50
+#define GRR_LEN         1
+#define BOOP_SND      440
+#define BOOP_LEN        2
+#define PLAYER_SND    620
+#define PLAYER_LEN      8
+#define AI_SND         80
+#define AI_LEN		   15
 /* */
 
 /* Shape constants */
@@ -63,7 +75,7 @@ static const int AI_STOP_RANGE = 3;
 #define PADDLE_FPMULT     100  /* Fixed-point multiplier */
 #define BALL_SPEED        	2
 
-#define AI_PREDICT_FRAMES  18
+#define AI_PREDICT_FRAMES  19
 /* */
 
 /* Data types */
@@ -189,18 +201,25 @@ void ball_reset(void)
 
 void ball_world_collision(void)
 {
-	if(ball.rect->y < TOP)
+	if(ball.rect->y < TOP) {
 		ball.dir_y = abs(ball.dir_y);
-	if(ball.rect->y + ball.rect->h > BTM)
+		sound_play(GRR_SND, GRR_LEN);
+	}
+	if(ball.rect->y + ball.rect->h > BTM) {
 		ball.dir_y = -(abs(ball.dir_y));
+		sound_play(GRR_SND, GRR_LEN);
+	}
 
 	if(ball.rect->x < 0) { /* LEFT */
+		sound_play(AI_SND, AI_LEN);
+
 		++ai.score;
 		ball_reset();
 		shuffle_cols();
-
 	}
 	if(ball.rect->x + ball.rect->w > SCREEN_WIDTH) { /* RIGHT */
+		sound_play_sliding(PLAYER_SND, PLAYER_LEN, 50);
+
 		++player.score;
 		ball_reset();
 		shuffle_cols();
@@ -224,6 +243,8 @@ void ball_paddle_collision(const Paddle *paddle)
 		{
 			ball.dir_y = percent + ((paddle->speed / 100) >> 2) + paddle->direction;
 			ball.dir_x = side;
+
+			sound_play(BOOP_SND, BOOP_LEN);
 		}
 	}
 }
@@ -354,6 +375,7 @@ void game_loop(void)
 			accumulator -= UPDATE_STEP_SIZE;
 		}
 
+		sound_tick();
 		render_fast(&rd);
 	}
 }
@@ -363,6 +385,8 @@ void quit(void)
 	quit_renderer(&rd);
 	free_rects(&rd);
 	restore_timer();
+	sound_stopall();
+
 	exit(1);
 }
 
