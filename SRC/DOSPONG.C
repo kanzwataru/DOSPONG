@@ -38,7 +38,7 @@ typedef int BOOL;
 #define GRR_LEN         1
 #define BOOP_SND      440
 #define BOOP_LEN        2
-#define PLAYER_SND    620
+#define PLAYER_SND    640
 #define PLAYER_LEN      8
 #define AI_SND         80
 #define AI_LEN		   15
@@ -63,8 +63,8 @@ static const int SCR_HALF      = SCREEN_WIDTH / 2;
 static const int TOP           = WALL_W;
 static const int BTM           = SCREEN_HEIGHT - WALL_W;
 static const int BTM_P         = SCREEN_HEIGHT - WALL_W - PADDLE_H;
-static const int AI_MIN_REACT  = SCREEN_WIDTH / 2;
-static const int AI_MAX_REACT  = SCREEN_WIDTH / 2 + PADDLE_GAP - 3;
+static const int AI_MIN_REACT  = SCREEN_WIDTH / 2 - 50;
+static const int AI_MAX_REACT  = SCREEN_WIDTH / 2 + PADDLE_GAP - 15;
 static const int AI_STOP_RANGE = 3;
 /* */
 
