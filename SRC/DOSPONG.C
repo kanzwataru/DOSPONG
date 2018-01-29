@@ -64,8 +64,8 @@ static const int TOP           = WALL_W;
 static const int BTM           = SCREEN_HEIGHT - WALL_W;
 static const int BTM_P         = SCREEN_HEIGHT - WALL_W - PADDLE_H;
 static const int AI_MIN_REACT  = SCREEN_WIDTH / 2 - 50;
-static const int AI_MAX_REACT  = SCREEN_WIDTH / 2 + PADDLE_GAP - 15;
-static const int AI_STOP_RANGE = 3;
+static const int AI_MAX_REACT  = SCREEN_WIDTH / 2 + PADDLE_GAP - 12;
+static const int AI_STOP_RANGE = 5;
 /* */
 
 /* Speed constants */
@@ -292,12 +292,18 @@ void update_ai(void)
 		ai.direction = (prediction < mid) ? -1 : ai.direction;
 		ai.direction = (prediction > mid) ?  1 : ai.direction;
 	}
+	else {
+		ai.direction = 0;
+	}
 
 	if(prediction > (mid - AI_STOP_RANGE)
 	&& prediction < (mid + AI_STOP_RANGE))
 	{
 		ai.direction = 0;
 	}
+
+	if(ball.dir_x < 0)
+		ai.direction = 0;
 }
 
 void update(void)
