@@ -7,37 +7,30 @@
 #include <malloc.h>
 
 #include "src/common.h"
-#include "src/pcinput.h"
 #include "src/srender.h"
 
 #define FOREGROUND_COL  8
 #define BACKGROUND_COL  7
 #define LABEL_COL      18
-#define PLAYER_SELECT_VIEW 0
-#define DIFFICULTY_SELECT_VIEW 1
 
-RenderData rd;
-unsigned char far *playersel_labels;
-unsigned char far *difficultysel_labels;
+enum view {
+    PLAYER_SELECT_VIEW,
+    DIFFICULTY_SELECT_VIEW
+};
 
-int current_view = PLAYER_SELECT_VIEW;
+typedef struct {
+    int id;
+    int pos;
+} ButtonPos;
 
-/*
-void load_menu_bg(void)
-{
-    unsigned int i;
+static RenderData rd;
+static unsigned char far *playersel_labels;
+static unsigned char far *difficultysel_labels;
 
-    for(i = 0; i < SCREEN_SIZE; ++i) {
-        if(title_graphics_data[i] != 255)
-            rd.bg_layer[i] = title_graphics_data[i];
-    }
+static int current_view = PLAYER_SELECT_VIEW;
+static int current_button = 0;
 
-    _fmemcpy(rd.back_buf, rd.bg_layer, SCREEN_SIZE);
-}
-
-*/
-
-void load_image(const char *filepath, unsigned char far *b)
+static void load_image(const char *filepath, unsigned char far *b)
 {
     FILE *fp;
 
@@ -50,7 +43,7 @@ void load_image(const char *filepath, unsigned char far *b)
     fclose(fp);
 }
 
-void load_menu_bg(void)
+static void load_menu_bg(void)
 {
     unsigned char far *image;
     unsigned int i;
@@ -71,7 +64,7 @@ void load_menu_bg(void)
     farfree(image);
 }
 
-void load_label_graphics(void)
+static void load_label_graphics(void)
 {
     playersel_labels = farmalloc(SCREEN_SIZE);
     difficultysel_labels = farmalloc(SCREEN_SIZE);
@@ -80,7 +73,7 @@ void load_label_graphics(void)
     load_image("GRAPHICS\\DIFSEL.DAT", difficultysel_labels);
 }
 
-void draw_text_labels(unsigned char far *image)
+static void draw_text_labels(unsigned char far *image)
 {
     unsigned int i;
 
@@ -90,23 +83,80 @@ void draw_text_labels(unsigned char far *image)
     }
 }
 
+static void move(int dir)
+{
+    current_button -= dir;
+    if(current_view == PLAYER_SELECT_VIEW && current_button > 1)
+        current_button = 0;
+    if(current_view == DIFFICULTY_SELECT_VIEW && current_button > 2)
+        current_button = 0;
+
+    if(current_view == PLAYER_SELECT_VIEW && current_button < 0)
+        current_button = 1;
+    if(current_view == DIFFICULTY_SELECT_VIEW && current_button < 0)
+        current_button = 2;
+}
+
+static void select(void)
+{
+    switch(current_view) {
+        case PLAYER_SELECT_VIEW:
+            if(current_button == 0)
+                current_view = DIFFICULTY_SELECT_VIEW;
+            break;
+
+        case DIFFICULTY_SELECT_VIEW:
+            break;
+    }
+}
+
+static BOOL handle_input(void)
+{
+    switch(getch()) {
+        case 27: /* ESC */
+            if(current_view == PLAYER_SELECT_VIEW)
+                return FALSE;
+            else
+                current_view = PLAYER_SELECT_VIEW;
+            break;
+        case UP_ARROW:
+            move(1);
+            break;
+        case DOWN_ARROW:
+            move(-1);
+            break;
+        case 13: /* ENTER */
+            select();
+            break;
+        default:
+            return TRUE;
+    }
+
+    return TRUE;
+}
+
 int pong_menu_init(void)
 {
-    Rect sel_rect = {SCREEN_WIDTH / 2 - (120 / 2 - 2), 118, 120, 18, 3};
+    Rect sel_rect = {SCREEN_WIDTH / 2 - (190 / 2 - 2), 118, 190, 18, 3};
 
     init_renderer(&rd);
 
     load_menu_bg();
     load_label_graphics();
 
-    while(!kbhit()) {
+    do {
         _fmemcpy(rd.back_buf, rd.bg_layer, SCREEN_SIZE);
 
+        sel_rect.y = 118 + (current_button * 23);
         draw_rect_fast(rd.back_buf, &sel_rect, FOREGROUND_COL);
-        draw_text_labels(playersel_labels);
+        
+        if(current_view == PLAYER_SELECT_VIEW)
+            draw_text_labels(playersel_labels);
+        else
+            draw_text_labels(difficultysel_labels);
 
         flip_buffer_full(&rd);
-    }
+    } while(handle_input());
 
     farfree(playersel_labels);
     farfree(difficultysel_labels);
