@@ -18,6 +18,7 @@ typedef int BOOL;
 #define DOWN_ARROW 80
 #define PAUSE      25
 #define SPACE      57
+#define ENTER      28
 #define ESC        1
 /* */
 

@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <malloc.h>
 
+#include "src/common.h"
+#include "src/pcinput.h"
 #include "src/srender.h"
 
 #define FOREGROUND_COL  8
