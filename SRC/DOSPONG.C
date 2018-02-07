@@ -5,26 +5,12 @@
 #include <malloc.h>
 #include <dos.h>
 
+#include "src/common.h"
 #include "src/srender.h"
 #include "src/pctimer.h" /* One of two places included, but not used at the same time */
 #include "src/pcinput.h"
 #include "src/utils.h"
 #include "src/snd.h"
-
-static const char *VERSION = "v1.1";
-#define UPDATE_STEP_SIZE 2
-
-typedef int BOOL;
-#define TRUE  1
-#define FALSE 0
-
-/* keyboard keys */
-#define UP_ARROW   72
-#define DOWN_ARROW 80
-#define PAUSE      25
-#define SPACE      57
-#define ESC        1
-/* */
 
 /* VGA default pallete colours */
 #define BLACK 0

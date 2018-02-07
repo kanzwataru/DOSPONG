@@ -96,10 +96,6 @@ int pong_menu_init(void)
 
     load_menu_bg();
     load_label_graphics();
-    //load_menu_bg();
-    //fill_fast(rd.bg_layer, 255);
-    //fill_fast(rd.back_buf, 255);
-    //fill_fast(rd.screen, 255);
 
     while(!kbhit()) {
         _fmemcpy(rd.back_buf, rd.bg_layer, SCREEN_SIZE);
