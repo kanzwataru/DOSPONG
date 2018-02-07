@@ -81,19 +81,19 @@ typedef struct {
 /* */
 
 /* game vars */
-unsigned char bg_col = BLACK;
-unsigned char accent_col = GRAY;
-BOOL game_paused = FALSE;
-Paddle player;
-Paddle ai;
-Ball ball;
+static unsigned char bg_col = BLACK;
+static unsigned char accent_col = GRAY;
+static BOOL game_paused = FALSE;
+static Paddle player;
+static Paddle ai;
+static Ball ball;
 /* */
 
 /* graphics */
 static RenderData rd;
 /* */
 
-void draw_score_tiles(void)
+static void draw_score_tiles(void)
 {
 	int ai_score_pos = SCREEN_WIDTH - SCORE_OFFSET;
 	Rect rect = {0, SCORE_OFFSET, SCORE_H, SCORE_W};
@@ -110,7 +110,7 @@ void draw_score_tiles(void)
 	}
 }
 
-void update_bg(void)
+static void update_bg(void)
 {
 	fill_bordered(rd.bg_layer, bg_col, accent_col, WALL_W);
 	draw_score_tiles();
@@ -118,7 +118,7 @@ void update_bg(void)
 	_fmemcpy(rd.screen, rd.bg_layer, SCREEN_SIZE);
 }
 
-void shuffle_cols(void)
+static void shuffle_cols(void)
 {
 	++accent_col;
 	if(accent_col == 16)
@@ -131,7 +131,7 @@ void shuffle_cols(void)
 	ball.rect->col = accent_col;
 }
 
-void pause(void)
+static void pause(void)
 {
 	static unsigned char col_a, col_b;
 
@@ -161,7 +161,7 @@ void pause(void)
 	}
 }
 
-void update_paddle(Paddle *paddle)
+static void update_paddle(Paddle *paddle)
 {
 	paddle->speed = f_clamp((paddle->speed + (PADDLE_ACCEL * paddle->direction))
 										   * (1.0f - (0.04f * !abs(paddle->direction))),
@@ -178,14 +178,14 @@ void update_paddle(Paddle *paddle)
 	}
 }
 
-void ball_reset(void)
+static void ball_reset(void)
 {
 	ball.parent = player.rect;
 	ball.dir_x = 1;
 	ball.dir_y = 1;
 }
 
-void ball_world_collision(void)
+static void ball_world_collision(void)
 {
 	if(ball.rect->y < TOP) {
 		ball.dir_y = abs(ball.dir_y);
@@ -212,7 +212,7 @@ void ball_world_collision(void)
 	}
 }
 
-void ball_paddle_collision(const Paddle *paddle)
+static void ball_paddle_collision(const Paddle *paddle)
 {
 	static const int LEFT = 1;
 	static const int RIGHT = -1;
@@ -235,7 +235,7 @@ void ball_paddle_collision(const Paddle *paddle)
 	}
 }
 
-void update_ball(void)
+static void update_ball(void)
 {
 	int side;
 
@@ -252,7 +252,7 @@ void update_ball(void)
 	}
 }
 
-int ai_predict(void)
+static int ai_predict(void)
 {
 	static int predict_counter;
 	static int last_prediction;
@@ -268,7 +268,7 @@ int ai_predict(void)
 	return last_prediction;
 }
 
-void update_ai(void)
+static void update_ai(void)
 {
 	int prediction = ai_predict();
 	//int prediction = ball.rect->y + (ball.rect->h >> 1);
@@ -292,7 +292,7 @@ void update_ai(void)
 		ai.direction = 0;
 }
 
-void update(void)
+static void update(void)
 {
 	if(game_paused)
 		return;
@@ -307,7 +307,7 @@ void update(void)
 	update_ai();
 }
 
-BOOL handle_input(void)
+static BOOL handle_input(void)
 {
 	switch(read_scancode()) {
 		case ESC:
@@ -344,7 +344,7 @@ BOOL handle_input(void)
 	return TRUE;
 }
 
-void game_loop(void)
+static void game_loop(void)
 {
 	int i;
 	unsigned long last_time = 0l;
@@ -372,7 +372,7 @@ void game_loop(void)
 	}
 }
 
-void quit(void)
+static void quit(void)
 {
 	quit_renderer(&rd);
 	free_rects(&rd);
