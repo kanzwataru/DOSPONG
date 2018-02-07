@@ -2,6 +2,7 @@
 
 #include "src/dospong.h"
 #include "src/cubetest.h"
+#include "src/pongmenu.h"
 
 int main(int argc, char **argv)
 {
@@ -14,7 +15,7 @@ int main(int argc, char **argv)
         }
     }
     else {
-        return pong_init();
+        return pong_menu_init();
     }
 
     return 1;

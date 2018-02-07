@@ -159,7 +159,7 @@ void fill(unsigned char far *buf, int colour)
 
 void fill_fast(unsigned char far *buf, int colour)
 {
-	_fmemset(buf, SCREEN_SIZE, colour);
+	_fmemset(buf, colour, SCREEN_SIZE);
 }
 
 void fill_bordered(unsigned char far *buf, int colour, int border_colour, int border)
@@ -228,8 +228,15 @@ void flip_buffer(RenderData *rd)
 		blit_buffer_fast(rd->screen, rd->bg_layer, &rd->dirty_rects[i]);
 		blit_buffer_fast(rd->screen, rd->back_buf, &rd->rects[i]);
 	}
+}
 
-	//_fmemcpy(rd->screen, rd->back_buf, SCREEN_SIZE);
+void flip_buffer_full(RenderData *rd)
+{
+	//wait for v retrace
+	while(inportb(INPUT_STATUS_0) & 8) {;}
+	while(!(inportb(INPUT_STATUS_0) & 8)) {;}
+
+	_fmemcpy(rd->screen, rd->back_buf, SCREEN_SIZE);
 }
 
 void render_fast(RenderData *rd)

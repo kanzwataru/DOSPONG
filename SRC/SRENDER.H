@@ -74,8 +74,14 @@ void clear(RenderData *rd);
 
 /*
  * Copies the back buffer to the screen memory, with Vsync
+ * but only where there are rects
 */
 void flip_buffer(RenderData *rd);
+
+/*
+ * Copies the back buffer to the screen memory, with Vsync
+*/
+void flip_buffer_full(RenderData *rd);
 
 /*
  * Combines clearing dirty rects and filling rects in one step,
