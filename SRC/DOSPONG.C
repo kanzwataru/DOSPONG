@@ -6,7 +6,6 @@
 #include <dos.h>
 
 #include "src/common.h"
-#include "src/srender.h"
 #include "src/pctimer.h" /* One of two places included, but not used at the same time */
 #include "src/pcinput.h"
 #include "src/utils.h"
@@ -379,20 +378,16 @@ static void quit(void)
 	restore_timer();
 	sound_stopall();
 
-	exit(1);
+	exit(0);
 }
 
-int pong_init(void)
+void pong_init(const RenderData *render_data)
 {
 	int i;
-	init_renderer(&rd);
+
+	rd = *render_data;
 	init_rects(&rd, 3); /* Three rects: ball, player, ai */
 	init_timer();
-
-	printf("*** DOSPONG ***\n");
-	printf("%s\n", VERSION);
-	printf("Still DOS-ing in 2018\n");
-	printf("\n Loading... \n");
 
 	player.rect = &rd.rects[0];
 	player.rect->x = SCR_HALF - PADDLE_GAP;
@@ -421,5 +416,4 @@ int pong_init(void)
 	game_loop();
 
 	quit();
-    return 0;
 }

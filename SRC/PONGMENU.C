@@ -1,3 +1,6 @@
+/*
+ * Nothing to see here, this menu code is not very good
+*/
 #include "src/pongmenu.h"
 
 #include <conio.h>
@@ -7,7 +10,7 @@
 #include <malloc.h>
 
 #include "src/common.h"
-#include "src/srender.h"
+#include "src/dospong.h"
 
 #define FOREGROUND_COL  8
 #define BACKGROUND_COL  7
@@ -18,17 +21,13 @@ enum view {
     DIFFICULTY_SELECT_VIEW
 };
 
-typedef struct {
-    int id;
-    int pos;
-} ButtonPos;
-
 static RenderData rd;
 static unsigned char far *playersel_labels;
 static unsigned char far *difficultysel_labels;
 
 static int current_view = PLAYER_SELECT_VIEW;
 static int current_button = 0;
+static BOOL start_game = FALSE;
 
 static void load_image(const char *filepath, unsigned char far *b)
 {
@@ -101,12 +100,14 @@ static void select(void)
 {
     switch(current_view) {
         case PLAYER_SELECT_VIEW:
-            if(current_button == 0)
+            if(current_button == 0) {
                 current_view = DIFFICULTY_SELECT_VIEW;
+                current_button = 1;
+            }
             break;
 
         case DIFFICULTY_SELECT_VIEW:
-            break;
+            start_game = TRUE;
     }
 }
 
@@ -116,8 +117,10 @@ static BOOL handle_input(void)
         case 27: /* ESC */
             if(current_view == PLAYER_SELECT_VIEW)
                 return FALSE;
-            else
+            else {
                 current_view = PLAYER_SELECT_VIEW;
+                current_button = 0;
+            }
             break;
         case UP_ARROW:
             move(1);
@@ -149,22 +152,25 @@ int pong_menu_init(void)
 
         sel_rect.y = 118 + (current_button * 23);
         draw_rect_fast(rd.back_buf, &sel_rect, FOREGROUND_COL);
-        
+
         if(current_view == PLAYER_SELECT_VIEW)
             draw_text_labels(playersel_labels);
         else
             draw_text_labels(difficultysel_labels);
 
         flip_buffer_full(&rd);
+
+        if(start_game)
+            break;
     } while(handle_input());
+
+    if(start_game)
+        pong_init(&rd);
+    else
+        quit_renderer(&rd);
 
     farfree(playersel_labels);
     farfree(difficultysel_labels);
-
-    quit_renderer(&rd);
-    free_rects(&rd);
-
-    exit(1);
 
     return 0;
 }

@@ -20,5 +20,5 @@ int main(int argc, char **argv)
         return pong_menu_init();
     }
 
-    return 1;
+    return 0;
 }

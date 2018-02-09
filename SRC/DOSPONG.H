@@ -1,6 +1,8 @@
 #ifndef DOSPONG_H
 #define DOSPONG_H
 
-int pong_init(void);
+#include "src/srender.h"
+
+void pong_init(const RenderData *render_data);
 
 #endif
