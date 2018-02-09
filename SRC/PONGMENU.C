@@ -165,7 +165,7 @@ int pong_menu_init(void)
     } while(handle_input());
 
     if(start_game)
-        pong_init(&rd);
+        pong_init(&rd, current_button);
     else
         quit_renderer(&rd);
 

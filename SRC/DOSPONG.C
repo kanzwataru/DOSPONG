@@ -48,9 +48,6 @@ static const int SCR_HALF      = SCREEN_WIDTH / 2;
 static const int TOP           = WALL_W;
 static const int BTM           = SCREEN_HEIGHT - WALL_W;
 static const int BTM_P         = SCREEN_HEIGHT - WALL_W - PADDLE_H;
-static const int AI_MIN_REACT  = SCREEN_WIDTH / 2 - 50;
-static const int AI_MAX_REACT  = SCREEN_WIDTH / 2 + PADDLE_GAP - 12;
-static const int AI_STOP_RANGE = 5;
 /* */
 
 /* Speed constants */
@@ -77,6 +74,38 @@ typedef struct {
 	int dir_x;
 	int dir_y;
 } Ball;
+
+typedef struct {
+	int min_react;
+	int max_react;
+	int stop_range;
+	int predict_frames;
+} AIDifficulty;
+/* */
+
+/* difficulty attributes */
+#define SCR_HALF_M    SCREEN_WIDTH / 2
+#define AI_PADDLE_LF  SCREEN_WIDTH / 2 + PADDLE_GAP
+static const AIDifficulty ai_easy = {
+	SCR_HALF_M   - 50,    /* min react */
+	AI_PADDLE_LF - 12,    /* max react */
+	5,					  /* stop range */
+	19					  /* predict frames */
+};
+
+static const AIDifficulty ai_medium = {
+	SCR_HALF_M   - 50,    /* min react */
+	AI_PADDLE_LF - 9,     /* max react */
+	5,					  /* stop range */
+	14					  /* predict frames */
+};
+
+static const AIDifficulty ai_hard = {
+	SCR_HALF_M  - 50,     /* min react */
+	AI_PADDLE_LF,         /* max react */
+	3,					  /* stop range */
+	8					  /* predict frames */
+};
 /* */
 
 /* game vars */
@@ -86,6 +115,7 @@ static BOOL game_paused = FALSE;
 static Paddle player;
 static Paddle ai;
 static Ball ball;
+static const AIDifficulty *ai_diff;
 /* */
 
 /* graphics */
@@ -256,7 +286,7 @@ static int ai_predict(void)
 	static int predict_counter;
 	static int last_prediction;
 
-	if(predict_counter > AI_PREDICT_FRAMES) {
+	if(predict_counter > ai_diff->predict_frames) {
 		predict_counter = 0;
 		last_prediction = ball.rect->y + (ball.rect->h >> 1);
 	}
@@ -273,7 +303,7 @@ static void update_ai(void)
 	//int prediction = ball.rect->y + (ball.rect->h >> 1);
 	int mid = ai.rect->y + PADDLE_HALFH;
 
-	if(ball.rect->x > AI_MIN_REACT && ball.rect->x < AI_MAX_REACT) {
+	if(ball.rect->x > ai_diff->min_react && ball.rect->x < ai_diff->max_react) {
 		ai.direction = (prediction < mid) ? -1 : ai.direction;
 		ai.direction = (prediction > mid) ?  1 : ai.direction;
 	}
@@ -281,8 +311,8 @@ static void update_ai(void)
 		ai.direction = 0;
 	}
 
-	if(prediction > (mid - AI_STOP_RANGE)
-	&& prediction < (mid + AI_STOP_RANGE))
+	if(prediction > (mid - ai_diff->stop_range)
+	&& prediction < (mid + ai_diff->stop_range))
 	{
 		ai.direction = 0;
 	}
@@ -381,9 +411,21 @@ static void quit(void)
 	exit(0);
 }
 
-void pong_init(const RenderData *render_data)
+void pong_init(const RenderData *render_data, int difficulty)
 {
 	int i;
+
+	switch(difficulty) {
+		case DIFFICULTY_EASY:
+			ai_diff = &ai_easy;
+			break;
+		case DIFFICULTY_MEDIUM:
+			ai_diff = &ai_medium;
+			break;
+		case DIFFICULTY_HARD:
+			ai_diff = &ai_hard;
+			break;
+	}
 
 	rd = *render_data;
 	init_rects(&rd, 3); /* Three rects: ball, player, ai */
