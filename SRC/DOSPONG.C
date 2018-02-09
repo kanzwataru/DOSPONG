@@ -23,10 +23,13 @@
 #define GRR_LEN         1
 #define BOOP_SND      440
 #define BOOP_LEN        2
-#define PLAYER_SND    640
-#define PLAYER_LEN      8
-#define AI_SND         80
-#define AI_LEN		   15
+#define PLAYER_SND    698
+#define PLAYER_SND_2  880
+#define PLAYER_SND_3 1174
+#define PLAYER_LEN   	8
+#define AI_SND         82
+#define AI_SND_2       77
+#define AI_LEN		   21
 /* */
 
 /* Shape constants */
@@ -42,12 +45,14 @@ static const int PADDLE_HALFW = PADDLE_W >> 1;
 /* */
 
 /* Positioning constants */
-#define PADDLE_GAP   120
-#define SCORE_OFFSET 3
-static const int SCR_HALF      = SCREEN_WIDTH / 2;
-static const int TOP           = WALL_W;
-static const int BTM           = SCREEN_HEIGHT - WALL_W;
-static const int BTM_P         = SCREEN_HEIGHT - WALL_W - PADDLE_H;
+#define PADDLE_GAP           120
+#define SCORE_OFFSET         3
+#define AI_PADDLE_LF         SCREEN_WIDTH / 2 + PADDLE_GAP
+#define SCR_HALF_M           SCREEN_WIDTH / 2
+static const int SCR_HALF  = SCREEN_WIDTH / 2;
+static const int TOP       = WALL_W;
+static const int BTM       = SCREEN_HEIGHT - WALL_W;
+static const int BTM_P     = SCREEN_HEIGHT - WALL_W - PADDLE_H;
 /* */
 
 /* Speed constants */
@@ -56,8 +61,6 @@ static const int BTM_P         = SCREEN_HEIGHT - WALL_W - PADDLE_H;
 #define PADDLE_SPEED      600
 #define PADDLE_FPMULT     100  /* Fixed-point multiplier */
 #define BALL_SPEED        	2
-
-#define AI_PREDICT_FRAMES  19
 /* */
 
 /* Data types */
@@ -73,6 +76,7 @@ typedef struct {
 	Rect *parent;
 	int dir_x;
 	int dir_y;
+	int ball_speed;
 } Ball;
 
 typedef struct {
@@ -84,8 +88,6 @@ typedef struct {
 /* */
 
 /* difficulty attributes */
-#define SCR_HALF_M    SCREEN_WIDTH / 2
-#define AI_PADDLE_LF  SCREEN_WIDTH / 2 + PADDLE_GAP
 static const AIDifficulty ai_easy = {
 	SCR_HALF_M   - 50,    /* min react */
 	AI_PADDLE_LF - 12,    /* max react */
@@ -104,8 +106,10 @@ static const AIDifficulty ai_hard = {
 	SCR_HALF_M  - 50,     /* min react */
 	AI_PADDLE_LF,         /* max react */
 	3,					  /* stop range */
-	8					  /* predict frames */
+	6					  /* predict frames */
 };
+
+static const AIDifficulty *ai_diff;
 /* */
 
 /* game vars */
@@ -115,7 +119,6 @@ static BOOL game_paused = FALSE;
 static Paddle player;
 static Paddle ai;
 static Ball ball;
-static const AIDifficulty *ai_diff;
 /* */
 
 /* graphics */
@@ -218,22 +221,28 @@ static void ball_world_collision(void)
 {
 	if(ball.rect->y < TOP) {
 		ball.dir_y = abs(ball.dir_y);
-		sound_play(GRR_SND, GRR_LEN);
+		sound_add(GRR_SND, GRR_LEN, NOSLIDE);
 	}
 	if(ball.rect->y + ball.rect->h > BTM) {
 		ball.dir_y = -(abs(ball.dir_y));
-		sound_play(GRR_SND, GRR_LEN);
+		sound_add(GRR_SND, GRR_LEN, NOSLIDE);
 	}
 
 	if(ball.rect->x < 0) { /* LEFT */
-		sound_play(AI_SND, AI_LEN);
+		sound_add(AI_SND, AI_LEN, NOSLIDE);
+		sound_add(AI_SND_2, AI_LEN << 1, NOSLIDE);
 
 		++ai.score;
 		ball_reset();
 		shuffle_cols();
 	}
 	if(ball.rect->x + ball.rect->w > SCREEN_WIDTH) { /* RIGHT */
-		sound_play_sliding(PLAYER_SND, PLAYER_LEN, 50);
+		sound_stopall();
+		sound_add(PLAYER_SND, PLAYER_LEN, NOSLIDE);
+		sound_add(SILENT, PLAYER_LEN >> 1, NOSLIDE);
+		sound_add(PLAYER_SND_2, PLAYER_LEN, NOSLIDE);
+		sound_add(SILENT, PLAYER_LEN >> 1, NOSLIDE);
+		sound_add(PLAYER_SND_3, PLAYER_LEN << 1, NOSLIDE);
 
 		++player.score;
 		ball_reset();
@@ -259,7 +268,7 @@ static void ball_paddle_collision(const Paddle *paddle)
 			ball.dir_y = percent + ((paddle->speed / 100) >> 2) + paddle->direction;
 			ball.dir_x = side;
 
-			sound_play(BOOP_SND, BOOP_LEN);
+			sound_add(BOOP_SND, BOOP_LEN, NOSLIDE);
 		}
 	}
 }
@@ -452,6 +461,7 @@ void pong_init(const RenderData *render_data, int difficulty)
 	ball.parent = player.rect;
 	ball.dir_y = 1;
 	ball.dir_x = 1;
+	ball.ball_speed = BALL_SPEED;
 
 	update_bg();
 

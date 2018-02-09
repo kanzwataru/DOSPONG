@@ -1,46 +1,61 @@
 #include "src/snd.h"
 #include <dos.h>
 
-static unsigned int _freq = 0;
-static unsigned int _duration = 0;
-static unsigned int _ticks = 0;
-static unsigned int _slide = 0;
+#define MAX_SOUNDS 6
 
-void sound_stopall(void)
+typedef struct {
+    unsigned int freq;
+    unsigned int duration;
+    unsigned int ticks;
+    unsigned int slide;
+} Sound;
+
+static Sound stack[MAX_SOUNDS];
+static int current = 0;
+static int top = 0;
+
+static void next_sound()
 {
-    nosound();
+    if(++current > top) {
+        current = 0;
+        top = 0;
+    }
+
+    if(stack[current].freq != SILENT)
+        sound(stack[current].freq);
 }
 
-void sound_play(unsigned int tone, unsigned int duration)
+void sound_add(unsigned int freq, unsigned int duration, unsigned int slide)
 {
-    _freq = tone;
-    _duration = duration;
-    _ticks = 0;
-    _slide = 0;
+    if(top + 1 < MAX_SOUNDS) {
+        ++top;
 
-    nosound();
-    sound(tone);
-}
-
-void sound_play_sliding(unsigned int tone, unsigned int duration, unsigned int slide)
-{
-    sound_play(tone, duration);
-
-    _slide = slide;
+        stack[top].freq = freq;
+        stack[top].duration = duration;
+        stack[top].slide = slide;
+    }
 }
 
 void sound_tick(void)
 {
-    if(_duration > 0) {
-        if(_slide != 0) {
-            _freq += _slide;
-            sound(_freq);
-        }
+    if(stack[current].duration == 0)
+        next_sound();
 
-        if(++_ticks > _duration) {
-            _duration = 0;
-            _ticks = 0;
-            nosound();
-        }
+    if(++stack[current].ticks > stack[current].duration) {
+        stack[current].freq = SILENT;
+        stack[current].duration = 0;
+        stack[current].ticks = 0;
+        stack[current].slide = 0;
+        nosound();
+
+        next_sound();
     }
+}
+
+void sound_stopall(void)
+{
+    current = 0;
+    top = 0;
+
+    nosound();
 }
