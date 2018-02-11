@@ -14,6 +14,8 @@ typedef int BOOL;
 #define FALSE 0
 
 /* keyboard keys */
+#define W          17
+#define S          31
 #define UP_ARROW   72
 #define DOWN_ARROW 80
 #define PAUSE      25

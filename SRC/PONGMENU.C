@@ -17,8 +17,8 @@
 #define LABEL_COL      18
 
 enum view {
-    PLAYER_SELECT_VIEW,
-    DIFFICULTY_SELECT_VIEW
+    PLAYER_SELECT_VIEW      = 0,
+    DIFFICULTY_SELECT_VIEW  = 1
 };
 
 static RenderData rd;
@@ -104,6 +104,9 @@ static void select(void)
                 current_view = DIFFICULTY_SELECT_VIEW;
                 current_button = 1;
             }
+            else {
+                start_game = TRUE;
+            }
             break;
 
         case DIFFICULTY_SELECT_VIEW:
@@ -165,7 +168,7 @@ int pong_menu_init(void)
     } while(handle_input());
 
     if(start_game)
-        pong_init(&rd, current_button);
+        pong_init(&rd, current_button, !current_view);
     else
         quit_renderer(&rd);
 

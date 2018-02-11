@@ -9,6 +9,6 @@ enum difficulty {
     DIFFICULTY_HARD    = 2
 };
 
-void pong_init(const RenderData *render_data, int difficulty);
+void pong_init(const RenderData *render_data, int difficulty, int multiplayer);
 
 #endif

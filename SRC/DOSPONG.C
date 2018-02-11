@@ -116,6 +116,7 @@ static const AIDifficulty *ai_diff;
 static unsigned char bg_col = BLACK;
 static unsigned char accent_col = GRAY;
 static BOOL game_paused = FALSE;
+static BOOL game_multiplayer;
 static Paddle player;
 static Paddle ai;
 static Ball ball;
@@ -210,11 +211,18 @@ static void update_paddle(Paddle *paddle)
 	}
 }
 
-static void ball_reset(void)
+static void ball_reset(BOOL is_ai)
 {
-	ball.parent = player.rect;
-	ball.dir_x = 1;
-	ball.dir_y = 1;
+	if(is_ai) {
+		ball.parent = ai.rect;
+		ball.dir_x = 1;
+		ball.dir_y = 1;
+	}
+	else {
+		ball.parent = player.rect;
+		ball.dir_x = -1;
+		ball.dir_y = 1;
+	}
 }
 
 static void ball_world_collision(void)
@@ -233,7 +241,7 @@ static void ball_world_collision(void)
 		sound_add(AI_SND_2, AI_LEN << 1, NOSLIDE);
 
 		++ai.score;
-		ball_reset();
+		ball_reset(TRUE && game_multiplayer);
 		shuffle_cols();
 	}
 	if(ball.rect->x + ball.rect->w > SCREEN_WIDTH) { /* RIGHT */
@@ -246,7 +254,7 @@ static void ball_world_collision(void)
 		sound_add(PLAYER_SND_3, PLAYER_LEN << 1, NOSLIDE);
 
 		++player.score;
-		ball_reset();
+		ball_reset(FALSE);
 		shuffle_cols();
 	}
 }
@@ -276,13 +284,12 @@ static void ball_paddle_collision(const Paddle *paddle)
 
 static void update_ball(void)
 {
-	int side;
-
 	if(ball.parent) {
-		side = (ball.parent->x > SCR_HALF) ? 0 : 1;  /* don't add the width for the right side paddle */
+		if(ball.parent->x < SCR_HALF)
+			ball.rect->x = (ball.parent->x + ball.parent->w);
+		else
+			ball.rect->x = (ball.parent->x - ball.rect->w);
 
-		ball.rect->x = (ball.parent->x + (side * ball.parent->w)
-									   + (!side * ball.rect->w));
 		ball.rect->y = ball.parent->y + (ball.parent->h >> 1) - (ball.rect->h >> 1);
 	}
 	else {
@@ -343,40 +350,85 @@ static void update(void)
 	ball_paddle_collision(&player);
 	ball_paddle_collision(&ai);
 	update_ball();
-	update_ai();
+
+	if(!game_multiplayer)
+		update_ai();
 }
 
 static BOOL handle_input(void)
 {
-	switch(read_scancode()) {
-		case ESC:
-			return FALSE;
-			break;
-		case 27: /* ']' (SECRET) */
-			shuffle_cols();
-			break;
-		case SPACE:
-			ball.parent = NULL;
-			break;
-		case UP_ARROW:
-			player.direction = -1;
-			break;
-		case DOWN_ARROW:
-			player.direction = 1;
-			break;
-		case PAUSE:
-			pause();
-			break;
-		case RELEASED(UP_ARROW):
-			player.direction = 0;
-			break;
-		case RELEASED(DOWN_ARROW):
-			player.direction = 0;
-			break;
-		default:
-			return TRUE;
-			break;
+	if(game_multiplayer) {
+		switch(read_scancode()) {
+			case ESC:
+				return FALSE;
+				break;
+			case SPACE:
+				ball.parent = NULL;
+				break;
+			case UP_ARROW:
+				ai.direction = -1;
+				break;
+			case DOWN_ARROW:
+				ai.direction = 1;
+				break;
+			case W:
+				player.direction = -1;
+				break;
+			case S:
+				player.direction = 1;
+				break;
+			case PAUSE:
+				pause();
+				break;
+			case RELEASED(UP_ARROW):
+				ai.direction = 0;
+				break;
+			case RELEASED(DOWN_ARROW):
+				ai.direction = 0;
+				break;
+			case RELEASED(W):
+				player.direction = 0;
+				break;
+			case RELEASED(S):
+				player.direction = 0;
+				break;
+			default:
+				return TRUE;
+				break;
+		}
 	}
+	else { /* not multiplayer */
+		switch(read_scancode()) {
+			case ESC:
+				return FALSE;
+				break;
+			case 27: /* ']' (SECRET) */
+				shuffle_cols();
+				break;
+			case SPACE:
+				ball.parent = NULL;
+				break;
+			case UP_ARROW:
+				player.direction = -1;
+				break;
+			case DOWN_ARROW:
+				player.direction = 1;
+				break;
+			case PAUSE:
+				pause();
+				break;
+			case RELEASED(UP_ARROW):
+				player.direction = 0;
+				break;
+			case RELEASED(DOWN_ARROW):
+				player.direction = 0;
+				break;
+			default:
+				return TRUE;
+				break;
+		}
+	}
+
 
 	free_keyb_buf();
 
@@ -421,7 +473,7 @@ static void quit(void)
 	exit(0);
 }
 
-void pong_init(const RenderData *render_data, int difficulty)
+void pong_init(const RenderData *render_data, int difficulty, int multiplayer)
 {
 	int i;
 
@@ -436,6 +488,7 @@ void pong_init(const RenderData *render_data, int difficulty)
 			ai_diff = &ai_hard;
 			break;
 	}
+	game_multiplayer = multiplayer;
 
 	rd = *render_data;
 	init_rects(&rd, 3); /* Three rects: ball, player, ai */
