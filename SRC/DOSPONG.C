@@ -240,8 +240,9 @@ static void ball_world_collision(void)
 		sound_stopall();
 		sound_add(PLAYER_SND, PLAYER_LEN, NOSLIDE);
 		sound_add(SILENT, PLAYER_LEN >> 1, NOSLIDE);
-		sound_add(PLAYER_SND_2, PLAYER_LEN, NOSLIDE);
-		sound_add(SILENT, PLAYER_LEN >> 1, NOSLIDE);
+		sound_add(PLAYER_SND, PLAYER_LEN, NOSLIDE);
+		sound_add(PLAYER_SND_2, PLAYER_LEN >> 1, NOSLIDE);
+		//sound_add(SILENT, PLAYER_LEN >> 1, NOSLIDE);
 		sound_add(PLAYER_SND_3, PLAYER_LEN << 1, NOSLIDE);
 
 		++player.score;
